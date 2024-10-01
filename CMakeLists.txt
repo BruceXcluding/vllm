@@ -14,7 +14,7 @@ cmake_minimum_required(VERSION 3.26)
 project(vllm_extensions LANGUAGES CXX)
 
 # Add some extra compile flags for kernarg preloading and output of source assembly
-list(APPEND ${CXX_COMPILE_FLAGS} "-mllvm --amdgpu-kernarg-preload-count=16 --save-temps")
+# list(APPEND ${CXX_COMPILE_FLAGS} "-mllvm --amdgpu-kernarg-preload-count=16 --save-temps")
 
 # CUDA by default, can be overridden by using -DVLLM_TARGET_DEVICE=... (used by setup.py)
 set(VLLM_TARGET_DEVICE "cuda" CACHE STRING "Target device backend for vLLM")
