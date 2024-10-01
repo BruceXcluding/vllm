@@ -159,7 +159,7 @@ class cmake_build_ext(build_ext):
         ]
 
         # Add kernarg preload flags and debug asm flag  
-        cmake_args += ['-DCMAKE_CXX_FLAGS=-mllvm\;--amdgpu-kernarg-preload-count=16\;--save-temps']
+        cmake_args += ['-DCMAKE_CXX_FLAGS=-mllvm --amdgpu-kernarg-preload-count=16 --save-temps']
 
         verbose = envs.VERBOSE
         if verbose:
