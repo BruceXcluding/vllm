@@ -158,6 +158,9 @@ class cmake_build_ext(build_ext):
             '-DVLLM_TARGET_DEVICE={}'.format(VLLM_TARGET_DEVICE),
         ]
 
+        # Add kernarg preload flags and debug asm flag  
+        cmake_args += ['-DCMAKE_CXX_FLAGS=-mllvm\;--amdgpu-kernarg-preload-count=16\;--save-temps']
+
         verbose = envs.VERBOSE
         if verbose:
             cmake_args += ['-DCMAKE_VERBOSE_MAKEFILE=ON']
