@@ -117,7 +117,7 @@ class DeepseekV2MoE(nn.Module):
                                 reduce_results=False,
                                 renormalize=config.norm_topk_prob,
                                 quant_config=quant_config,
-                                use_grouped_topk=True,
+                                use_grouped_topk=False,
                                 num_expert_group=config.n_group,
                                 topk_group=config.topk_group,
                                 prefix=f"{prefix}.experts")
