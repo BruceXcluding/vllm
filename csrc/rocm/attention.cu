@@ -316,12 +316,15 @@ __global__ __launch_bounds__(NUM_THREADS) void paged_attention_ll4mi_QKV_kernel(
     int vphysical_blocks[VBLOCKS];
 
     const int warp_start_block_idx = warp_start_token_idx / BLOCK_SIZE;
+
+    if constexpr(GQA_RATIO < 12){
   #pragma unroll
     for (int b = 0; b < VBLOCKS; b++) {
       const int vblock_idx = warp_start_block_idx + b;
       const int vblock_idx_ctx =
           (vblock_idx <= last_ctx_block) ? vblock_idx : last_ctx_block;
       vphysical_blocks[b] = block_table[vblock_idx_ctx];
+    }
     }
 
     // each 4 lanes fetch 8 helems, so warp fetches 8*16 = 128 helems
@@ -379,6 +382,16 @@ __global__ __launch_bounds__(NUM_THREADS) void paged_attention_ll4mi_QKV_kernel(
       }
     }
 
+    // fetch vphysical block numbers up front
+    if constexpr(GQA_RATIO >= 12) {
+  #pragma unroll
+    for (int b = 0; b < VBLOCKS; b++) {
+      const int vblock_idx = warp_start_block_idx + b;
+      const int vblock_idx_ctx =
+          (vblock_idx <= last_ctx_block) ? vblock_idx : last_ctx_block;
+      vphysical_blocks[b] = block_table[vblock_idx_ctx];
+    }
+    }
     const cache_t* v_ptr = v_cache + wg_start_kv_head_idx * kv_head_stride;
     if constexpr (KV_DTYPE == vllm::Fp8KVCacheDataType::kAuto) {
       const _B16x8* v_ptrh8 = reinterpret_cast<const _B16x8*>(v_ptr);
@@ -1024,7 +1037,7 @@ __launch_bounds__(NUM_THREADS) void paged_attention_ll4mi_reduce_kernel(
 
 template <typename T, typename KVT, vllm::Fp8KVCacheDataType KV_DTYPE,
           int BLOCK_SIZE, int HEAD_SIZE, typename OUTT,
-          int PARTITION_SIZE = 512>
+          int PARTITION_SIZE = 256>
 void paged_attention_custom_launcher(
     torch::Tensor& out, torch::Tensor& exp_sums, torch::Tensor& max_logits,
     torch::Tensor& tmp_out, torch::Tensor& query, torch::Tensor& key_cache,
