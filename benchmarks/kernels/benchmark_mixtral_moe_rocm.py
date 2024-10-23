@@ -329,7 +329,7 @@ def run_timing(
             use_int8_w8a16=False
         )
 
-        ops.silu_and_mul(intermediate_cache2, intermediate_cache1.view(-1, N))
+        intermediate_cache2=torch.nn.functional.gelu(intermediate_cache1).view((M * topk_ids.shape[1], N))
 
         invoke_fused_moe_kernel(
             intermediate_cache2,
