@@ -112,8 +112,11 @@ torch::Tensor dTensor;
 std::map<at::ScalarType, hipDataType> dtype_map{
     {at::kHalf, HIP_R_16F},
     {at::kBFloat16, HIP_R_16BF},
-    {at::kFloat, HIP_R_32F},
-    {at::kFloat8_e4m3fnuz, HIP_R_8F_E4M3_FNUZ}};
+    {at::kFloat, HIP_R_32F}
+#ifdef ENABLE_TORCH_FP8
+    ,{at::kFloat8_e4m3fnuz, HIP_R_8F_E4M3_FNUZ}
+#endif
+    };
 
 // std::vector<hipblasLtMatmulHeuristicResult_t> heuristicResult;
 }  // namespace
@@ -151,7 +154,7 @@ std::vector<int> hipblasLtMatmul_findallsols_wrapper(
         matmul, HIPBLASLT_MATMUL_DESC_BIAS_POINTER, &bias, sizeof(void*)));
     auto epilogue = HIPBLASLT_EPILOGUE_BIAS;
     CHECK_HIPBLAS_ERROR(hipblasLtMatmulDescSetAttribute(
-        matmul, HIPBLASLT_MATMUL_DESC_EPILOGUE, &epilogue, sizeof(int32_t)));
+        matmul, HIPBLASLT_MATMUL_DESC_EPILOGUE, &epilogue, sizeof(epilogue)));
   }
 
   // std::vector<hipblasLtMatmulHeuristicResult_t> heuristicResult(10);
@@ -245,7 +248,7 @@ hipblasStatus_t hipblasLtMatmul_sol_wrapper(
     auto epilogue = HIPBLASLT_EPILOGUE_BIAS;
     static_assert(sizeof(epilogue) == sizeof(int32_t));
     CHECK_HIPBLAS_ERROR(hipblasLtMatmulDescSetAttribute(
-        matmul, HIPBLASLT_MATMUL_DESC_EPILOGUE, &epilogue, sizeof(int32_t)));
+        matmul, HIPBLASLT_MATMUL_DESC_EPILOGUE, &epilogue, sizeof(epilogue)));
   }
   // nvtxRangePop();
   //  if heuristic does not exist in the map, do search and push into the map
@@ -291,11 +294,11 @@ hipblasStatus_t hipblasLtMatmul_sol_wrapper(
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 torch::Tensor hipb_mm(const torch::Tensor& mat1, const torch::Tensor& mat2,
                       const int solution_index,
-                      at::optional<torch::Tensor> bias = at::nullopt,
-                      at::optional<py::object> out_dtype = at::nullopt,
-                      at::optional<torch::Tensor> scale1 = at::nullopt,
-                      at::optional<torch::Tensor> scale2 = at::nullopt,
-                      at::optional<torch::Tensor> scaleOut = at::nullopt) {
+                      std::optional<torch::Tensor> bias = std::nullopt,
+                      std::optional<py::object> out_dtype = std::nullopt,
+                      std::optional<torch::Tensor> scale1 = std::nullopt,
+                      std::optional<torch::Tensor> scale2 = std::nullopt,
+                      std::optional<torch::Tensor> scaleOut = std::nullopt) {
   auto mat1_strides{mat1.strides()};
   auto mat2_strides{mat2.strides()};
   auto mat1_sizes{mat1.sizes()};
@@ -394,8 +397,8 @@ torch::Tensor hipb_mm(const torch::Tensor& mat1, const torch::Tensor& mat2,
 // find all hipblas solutions and return them to python land
 std::vector<int> hipb_findallsols(
     const torch::Tensor& mat1, const torch::Tensor& mat2,
-    at::optional<torch::Tensor> bias = at::nullopt,
-    at::optional<py::object> out_dtype = at::nullopt) {
+    std::optional<torch::Tensor> bias = std::nullopt,
+    std::optional<py::object> out_dtype = std::nullopt) {
   auto mat1_strides{mat1.strides()};
   auto mat2_strides{mat2.strides()};
   auto mat1_sizes{mat1.sizes()};
@@ -511,10 +514,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("hipb_create_extension", &hipb_create_extension, "create_extension");
   m.def("hipb_destroy_extension", &hipb_destroy_extension, "destroy_extension");
   m.def("hipb_mm", &hipb_mm, "hipb_mm", py::arg("mat1"), py::arg("mat2"),
-        py::arg("solution_index"), py::arg("bias") = at::nullopt,
-        py::arg("out_dtype") = at::nullopt, py::arg("scale1") = at::nullopt,
-        py::arg("scale2") = at::nullopt, py::arg("scaleOut") = at::nullopt);
+        py::arg("solution_index"), py::arg("bias") = std::nullopt,
+        py::arg("out_dtype") = std::nullopt, py::arg("scale1") = std::nullopt,
+        py::arg("scale2") = std::nullopt, py::arg("scaleOut") = std::nullopt);
   m.def("hipb_findallsols", &hipb_findallsols, "hipb_findallsols",
-        py::arg("mat1"), py::arg("mat2"), py::arg("bias") = at::nullopt,
-        py::arg("out_dtype") = at::nullopt);
+        py::arg("mat1"), py::arg("mat2"), py::arg("bias") = std::nullopt,
+        py::arg("out_dtype") = std::nullopt);
 }
